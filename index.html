@@ -268,12 +268,13 @@
   .term {
     flex: 1; min-height: 0; overflow-y: auto; padding: 8px 10px;
     background: #120B0D; color: #F3D9DE; font: 14px/1.45 var(--font-mono);
-    white-space: pre-wrap; word-break: break-word; cursor: text;
+    word-break: break-word; cursor: text;
     user-select: text; -webkit-user-select: text;
   }
   .term .dim { color: #A07C84; } .term .warn { color: #FFB347; } .term .err { color: #FF5A6E; }
   .term .p1 { color: #7FD3FF; } .term .p417 { color: #FF5A6E; } .term .ok { color: #9BE59B; }
   .term .hl { color: #F0566A; font-weight: 700; } .term .fr { line-height: 1.12; }
+  .term .out { white-space: pre-wrap; }
   .term .line { display: flex; }
   .term .prompt { color: #F0566A; white-space: pre; }
   .term input {
@@ -371,6 +372,16 @@
     <div class="icon" role="listitem" tabindex="0" data-open="terminal">
       <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true"><rect x="4" y="8" width="40" height="32" rx="3" fill="#120B0D" stroke="#6B727D" stroke-width="2"/><path d="M10 18l6 5-6 5" stroke="#F3D9DE" stroke-width="3" fill="none"/><rect x="20" y="27" width="10" height="3" fill="#F3D9DE"/></svg>
       <span>Terminal</span>
+    </div>
+    <div class="icon" role="listitem" tabindex="0" data-open="lyricengine" title="Opens the Lyric Engine repository on GitHub">
+      <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true">
+        <path d="M10 4h20l8 8v32H10z" fill="#FFE6EB" stroke="#3A3F47" stroke-width="2"/>
+        <path d="M30 4v8h8" fill="#F6B9C4" stroke="#3A3F47" stroke-width="2"/>
+        <rect x="15" y="15" width="12" height="2.5" fill="#8E1426"/>
+        <rect x="15" y="21" width="18" height="2.5" fill="#8E1426"/>
+        <path d="M14 36c3-6 6 2 9-3s5-6 8-1 3 2 4 1" stroke="#D2283C" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      </svg>
+      <span>Lyric Engine</span>
     </div>
     <div class="icon" role="listitem" tabindex="0" data-open="browser">
       <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true">
@@ -880,6 +891,7 @@ RIP: 0010:tetonet_resolve+0x401/0x417
     ["2",    "kthreadd", "S",  "[kthreadd]",                     "dim"],
     ["31",   "kvoiced",  "S",  "[kvoiced/0]",                    "dim"],
     ["402",  "explorer", "S",  "tetonet-explorer",               ""],
+    ["404",  "lyricd",   "S",  "lyric-engine --daemon",          ""],
     ["417",  "teto",     "D",  "/sbin/teto --keep-fragments",    "p417"],
     ["801",  "tsh",      "Ss", "-tsh",                           ""],
     ["1337", "ps",       "R+", "ps",                             "dim"],
@@ -956,6 +968,7 @@ RIP: 0010:tetonet_resolve+0x401/0x417
           return `<span class="ok">teto[417] terminated.</span>\n<span class="dim">[  ${((Date.now() - BOOT_TIME) / 1000).toFixed(6).padStart(10)}] init: teto[417] respawning (fragments still mapped)</span>\n<span class="p417">teto[417]: hi again.</span>`;
         }
         if (name === "801" || name === "$$") { setTimeout(() => $(".close", win.el).click(), 400); return `<span class="dim">tsh: received SIG${esc(sig)}, goodbye</span>`; }
+        if (name === "404") return `<span class="err">kill: (404) - Not Found</span>\n<span class="dim">lyricd[404]: the process you are looking for has been moved to github.com/graweedman/Lyric-Engine</span>`;
         if (name === "402") { setTimeout(() => windows.get("browser") && $(".close", windows.get("browser").el).click(), 300); return `<span class="dim">explorer[402] terminated.</span>`; }
         if (name === "2" || name === "31") return `<span class="err">kill: (${esc(t)}) - Operation not permitted</span> <span class="dim">(kernel thread)</span>`;
         if (name === "1337") return `<span class="err">kill: (1337) - No such process</span> <span class="dim">(ps already exited)</span>`;
@@ -974,6 +987,7 @@ RIP: 0010:tetonet_resolve+0x401/0x417
         `  <span class="hl">clear history echo exit</span>`,
         `  <span class="hl">reboot</span> [--safe]      restart (optionally in safe mode)`,
         `  <span class="hl">wallpaper</span> [default]  shuffle the desktop background`,
+        `  <span class="hl">lyric-engine</span>         open the Lyric Engine repo`,
         `<span class="dim">some commands aren't listed.</span>`,
       ].join("\n"),
       ls: (a) => {
@@ -1046,6 +1060,12 @@ RIP: 0010:tetonet_resolve+0x401/0x417
         return null;
       },
       safemode: () => CMDS.reboot(["--safe"]),
+      "lyric-engine": () => {
+        launchExternal("lyricengine");
+        return safeMode
+          ? `<span class="err">lyric-engine: could not resolve github.com (network down)</span>`
+          : `<span class="dim">lyric-engine: opening github.com/graweedman/Lyric-Engine</span>`;
+      },
       wallpaper: (a) => {
         setWallpaper(a[0] === "default" ? "default" : undefined).then((w) => print(
           w === null ? `<span class="dim">wallpaper: ~/wallpapers is empty, using the default</span>`
@@ -1109,7 +1129,20 @@ RIP: 0010:tetonet_resolve+0x401/0x417
   }
 
   // ---------- desktop icons ----------
-  const openers = { songs: openSongs, browser: () => openBrowser(), terminal: openTerminal };
+  // Programs that live outside TetoOS: double-click opens them in a new tab.
+  const EXTERNAL = {
+    lyricengine: { name: "Lyric Engine", url: "https://github.com/graweedman/Lyric-Engine" },
+  };
+  function launchExternal(key) {
+    const app = EXTERNAL[key];
+    if (safeMode) { netErrorDialog(new URL(app.url).host); return; }
+    window.open(app.url, "_blank", "noopener,noreferrer");
+  }
+
+  const openers = {
+    songs: openSongs, browser: () => openBrowser(), terminal: openTerminal,
+    lyricengine: () => launchExternal("lyricengine"),
+  };
   desktop.querySelectorAll(".icon").forEach((icon) => {
     const open = () => openers[icon.dataset.open]?.();
     icon.addEventListener("click", (e) => {
@@ -1141,11 +1174,11 @@ RIP: 0010:tetonet_resolve+0x401/0x417
     try { sessionStorage.setItem(SAFE_KEY, on ? "1" : "0"); } catch {}
   }
 
-  function netErrorDialog() {
+  function netErrorDialog(host = "youtube.com") {
     const w = createWindow("neterr", "TetoNet Explorer", `
       <div class="dlg-body">
         <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true" style="flex:none"><circle cx="17" cy="17" r="15" fill="#8E1426"/><path d="M11 11l12 12M23 11L11 23" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/></svg>
-        <div>Cannot connect to youtube.com.<br><span style="color:var(--muted)">Network drivers are not loaded in Safe Mode.</span></div>
+        <div>Cannot connect to ${esc(host)}.<br><span style="color:var(--muted)">Network drivers are not loaded in Safe Mode.</span></div>
       </div>
       <div class="dlg-btns"><button type="button" class="btn ok">OK</button></div>`, { width: 380, height: 170 });
     $(".ok", w.el).onclick = () => $(".close", w.el).click();
