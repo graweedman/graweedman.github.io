@@ -1,0 +1,1243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TetoOS</title>
+<style>
+  :root {
+    --teto-red: #D2283C;      /* hair crimson */
+    --teto-deep: #8E1426;     /* shadow crimson */
+    --teto-hot: #F0566A;      /* highlight */
+    --teto-pink: #F6B9C4;     /* soft pink */
+    --teto-blush: #FFE6EB;    /* window body */
+    --steel: #3A3F47;         /* her grey/black outfit */
+    --steel-hi: #6B727D;
+    --ink: #1E1416;
+    --paper: #FFF7F8;
+    --muted: #7d5f66;
+    --line: #F2C6CF;
+    --select: rgba(210, 40, 60, .18);
+
+    --font-ui: Tahoma, "Segoe UI", Verdana, "DejaVu Sans", sans-serif;
+    --font-title: "Trebuchet MS", "Segoe UI", Verdana, sans-serif;
+    --font-mono: Consolas, "Lucida Console", "DejaVu Sans Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font: 13px/1.35 var(--font-ui);
+    color: var(--ink);
+    background: #000;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* ---------- boot + welcome (short intro, click or any key skips) ---------- */
+  .intro { position: fixed; inset: 0; z-index: 9000; display: none; cursor: pointer; }
+  .intro.on { display: block; }
+  #boot { background: #000; color: var(--paper); }
+  #boot .center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; }
+  .logo { display: flex; align-items: center; gap: 18px; }
+  .logo svg { width: clamp(56px, 9vw, 84px); height: auto; }
+  .logo .name { font-family: var(--font-title); font-size: clamp(40px, 7vw, 64px); font-weight: 700; letter-spacing: .5px; color: var(--paper); }
+  .logo .name b { color: var(--teto-red); font-style: italic; }
+  .logo .name small { font-size: .4em; vertical-align: super; color: var(--teto-pink); margin-left: 6px; font-weight: 400; }
+  .bootbar { width: 200px; height: 20px; border: 2px solid #5a5a5a; border-radius: 4px; padding: 2px; overflow: hidden; position: relative; }
+  .bootbar i { position: absolute; top: 3px; width: 12px; height: 12px; border-radius: 2px; background: linear-gradient(var(--teto-hot), var(--teto-red)); animation: slide 2s linear infinite; }
+  .bootbar i:nth-child(2) { animation-delay: .12s; } .bootbar i:nth-child(3) { animation-delay: .24s; }
+  @keyframes slide { from { left: -40px; } to { left: 210px; } }
+  #boot .copy { position: absolute; bottom: 40px; left: 0; right: 0; text-align: center; color: #888; font-size: 14px; }
+  #boot .skip { position: absolute; top: 16px; right: 20px; color: #555; font-size: 12px; }
+
+  #login { background: linear-gradient(180deg, var(--teto-deep) 0 12%, var(--teto-red) 12% 88%, var(--teto-deep) 88%); }
+  #login::before, #login::after { content: ""; position: absolute; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--teto-pink), transparent); }
+  #login::before { top: 12%; } #login::after { bottom: 12%; }
+  #login .welcome { position: absolute; left: 10%; top: 50%; transform: translateY(-50%); font-family: var(--font-title); font-style: italic; font-size: clamp(54px, 9vw, 110px); color: #fff; text-shadow: 0 3px 10px rgba(0,0,0,.35); }
+  #login .tile { position: absolute; right: 12%; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 22px; }
+  #login .avatar { width: 96px; height: 96px; border-radius: 10px; border: 3px solid #fff; background: var(--teto-pink); display: grid; place-items: center; box-shadow: 0 4px 12px rgba(0,0,0,.3); overflow: hidden; }
+  .avatar > * { grid-area: 1 / 1; }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .page .profile { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+  .page .profile .sub { margin: 0; }
+  .page .avatar { width: 72px; height: 72px; flex: none; border-radius: 8px; border: 2px solid var(--teto-red); background: var(--teto-pink); display: grid; place-items: center; overflow: hidden; box-shadow: 2px 2px 6px rgba(0,0,0,.2); }
+  .page .avatar svg { width: 48px; height: 48px; }
+  #login .uname { font-size: 34px; color: #fff; font-family: var(--font-title); }
+  #login .ustatus { font-size: 18px; color: var(--teto-pink); }
+  @media (max-width: 640px) {
+    #login .welcome { left: 0; right: 0; top: 30%; text-align: center; }
+    #login .tile { left: 50%; right: auto; top: 62%; transform: translate(-50%, -50%); }
+  }
+
+  /* ---------- desktop ---------- */
+  #desktop {
+    position: absolute; inset: 0 0 40px 0;
+    background:
+      radial-gradient(120% 60% at 30% 108%, var(--teto-red) 0 48%, transparent 48.2%),
+      radial-gradient(110% 55% at 85% 112%, var(--teto-deep) 0 50%, transparent 50.2%),
+      linear-gradient(180deg, #FFD9E0 0%, #FBA9B8 55%, #F48095 100%);
+  }
+  .icons { position: absolute; left: 18px; top: 18px; display: grid; gap: 22px; }
+  .icon {
+    width: 86px; padding: 4px 2px; border: 1px dotted transparent; border-radius: 3px;
+    text-align: center; color: #fff; font-size: 14px; text-shadow: 1px 1px 2px #000; cursor: default;
+  }
+  .icon svg { display: block; margin: 0 auto 6px; filter: drop-shadow(1px 2px 1px rgba(0,0,0,.35)); }
+  .icon:focus { outline: none; }
+  .icon.selected, .icon:focus-visible { background: rgba(142, 20, 38, .45); border-color: #fff9; }
+
+  /* ---------- taskbar ---------- */
+  #taskbar {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 40px; z-index: 5000;
+    display: flex; align-items: stretch;
+    background: linear-gradient(180deg, var(--teto-hot) 0%, var(--teto-red) 10%, var(--teto-red) 85%, var(--teto-deep) 100%);
+  }
+  #start {
+    display: flex; align-items: center; gap: 8px; padding: 0 26px 0 12px; border: 0; border-radius: 0 14px 14px 0;
+    background: linear-gradient(180deg, var(--steel-hi) 0%, var(--steel) 45%, #22262B 100%);
+    color: #fff; font: italic 700 22px var(--font-title); text-shadow: 1px 1px 1px #000;
+    box-shadow: 2px 0 4px rgba(0,0,0,.35); cursor: pointer;
+  }
+  #tasks { flex: 1; min-width: 0; display: flex; gap: 4px; padding: 5px 8px; overflow: hidden; }
+  .task {
+    min-width: 0; width: 200px; flex: 0 1 auto; padding: 0 10px; border-radius: 3px; border: 1px solid var(--teto-deep);
+    background: linear-gradient(180deg, var(--teto-hot), var(--teto-red)); color: #fff; font: 13px var(--font-ui);
+    text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+  }
+  .task.active { background: linear-gradient(180deg, var(--teto-deep), #6B0F1C); }
+  #tray {
+    display: flex; align-items: center; gap: 10px; padding: 0 16px; color: #fff; font-size: 13px;
+    background: linear-gradient(180deg, #B01F33, var(--teto-deep)); border-left: 1px solid var(--teto-deep);
+  }
+  #tray .net rect { fill: #fff; }
+
+  /* ---------- windows ---------- */
+  .window {
+    position: absolute; min-width: 280px; min-height: 200px;
+    background: var(--teto-red); border-radius: 8px 8px 0 0; padding: 0 3px 3px;
+    box-shadow: 2px 4px 14px rgba(0,0,0,.35);
+    display: flex; flex-direction: column;
+    resize: both; overflow: hidden;
+  }
+  .window.inactive .titlebar { filter: saturate(.45) brightness(1.1); }
+  .window.max { left: 0 !important; top: 0 !important; width: 100% !important; height: calc(100% - 40px) !important; border-radius: 0; resize: none; }
+  .titlebar {
+    height: 30px; flex: none; padding: 0 4px 0 8px; border-radius: 7px 7px 0 0;
+    background: linear-gradient(180deg, var(--teto-hot) 0%, var(--teto-red) 18%, var(--teto-red) 80%, var(--teto-deep) 100%);
+    display: flex; align-items: center; gap: 4px; cursor: move; touch-action: none;
+  }
+  .window.max .titlebar { border-radius: 0; }
+  .titlebar .title {
+    flex: 1; margin-right: 4px; color: #fff; font: 700 14px var(--font-title); text-shadow: 1px 1px 0 rgba(0,0,0,.4);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .titlebar button {
+    width: 22px; height: 22px; border-radius: 4px; border: 1px solid #fff; padding: 0;
+    display: grid; place-items: center; color: #fff; font: 700 12px var(--font-ui); line-height: 1; cursor: pointer;
+    background: linear-gradient(180deg, var(--teto-hot), var(--teto-deep));
+  }
+  .titlebar button.close { background: linear-gradient(180deg, #FF8A5B, #C2300F); }
+
+  .toolbar, .address, .navbar, .bookmarks, .statusbar { flex: none; background: var(--teto-blush); }
+  .toolbar { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+  .toolbar button, .bookmarks button {
+    border: 1px solid transparent; background: none; padding: 3px 8px; border-radius: 3px;
+    font: 12px var(--font-ui); cursor: pointer; color: var(--ink); white-space: nowrap;
+  }
+  .toolbar button:hover, .bookmarks button:hover { border-color: var(--teto-pink); background: var(--paper); }
+  .toolbar button[aria-pressed="true"] { border-color: var(--teto-red); background: var(--select); }
+  .toolbar button:disabled { color: #c9a9b0; cursor: default; border-color: transparent; background: none; }
+  .toolbar .sep { width: 1px; align-self: stretch; margin: 2px 2px; background: var(--line); }
+  .folder-icon { width: 104px; aspect-ratio: 16 / 9; display: flex; align-items: center; justify-content: center; }
+  .folder-icon svg { width: 54px; height: 54px; filter: drop-shadow(1px 2px 1px rgba(0,0,0,.25)); }
+  .files.details .folder-icon { width: 48px; }
+  .files.details .folder-icon svg { width: 26px; height: 26px; }
+  .address {
+    display: flex; align-items: center; gap: 6px; padding: 3px 6px;
+    border-bottom: 1px solid var(--line); font-size: 12px; color: var(--muted);
+  }
+  .address .path, .navbar input {
+    background: #fff; border: 1px solid var(--steel-hi); color: var(--ink);
+  }
+  .address .path { flex: 1; padding: 2px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .files {
+    flex: 1; overflow: auto; background: var(--paper); padding: 10px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; align-content: start;
+  }
+  .file {
+    padding: 6px 4px; border: 1px solid transparent; border-radius: 3px;
+    display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: default;
+  }
+  .file:hover { border-color: var(--line); background: #fff; }
+  .file.selected, .file:focus-visible { outline: none; border-color: var(--teto-red); background: var(--select); }
+  .thumb {
+    position: relative; width: 104px; aspect-ratio: 16 / 9; border-radius: 2px; overflow: hidden;
+    background: var(--ink); border: 1px solid var(--steel); box-shadow: 2px 2px 4px rgba(0,0,0,.25);
+  }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb .fallback {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    padding: 4px; text-align: center; font: 700 10px var(--font-title); color: #fff;
+    background: linear-gradient(135deg, var(--teto-red), var(--teto-deep) 60%, var(--steel));
+  }
+  .thumb .play {
+    position: absolute; right: 3px; bottom: 3px; width: 18px; height: 13px; border-radius: 3px;
+    background: rgba(210, 40, 60, .9); border: 1px solid #fff; display: flex; align-items: center; justify-content: center;
+  }
+  .thumb .play::after {
+    content: ""; border-left: 6px solid #fff; border-top: 3.5px solid transparent; border-bottom: 3.5px solid transparent;
+    margin-left: 1px;
+  }
+  .file .name {
+    width: 100%; font-size: 12px; text-align: center; word-break: break-all;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .file.selected .name { -webkit-line-clamp: unset; }
+  .file .badge-new {
+    font-size: 9px; font-weight: bold; color: #fff; background: var(--teto-red);
+    padding: 0 4px; border-radius: 6px; margin-left: 3px; vertical-align: 1px;
+  }
+
+  /* details view */
+  .files.details { display: block; padding: 0; }
+  .files.details .file { flex-direction: row; gap: 10px; padding: 3px 8px; border-radius: 0; border-width: 1px 0; }
+  .files.details .thumb { width: 48px; }
+  .files.details .name { flex: 1; text-align: left; -webkit-line-clamp: 1; }
+  .files.details .meta { display: block; width: 90px; color: var(--muted); font-size: 12px; text-align: right; }
+  .files .meta { display: none; }
+
+  .statusbar {
+    padding: 3px 8px; font-size: 12px; color: var(--muted);
+    border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 8px;
+  }
+  .empty { padding: 24px; color: var(--muted); }
+
+  /* ---------- browser ---------- */
+  .navbar { display: flex; align-items: center; gap: 4px; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+  .navbar .nav {
+    width: 28px; height: 26px; border: 1px solid var(--steel); border-radius: 3px; padding: 0;
+    background: linear-gradient(#fff, #efe4e7); color: var(--teto-deep);
+    font: bold 13px var(--font-ui); cursor: pointer;
+  }
+  .navbar .nav:disabled { color: #c9a9b0; border-color: #c9a9b0; cursor: default; }
+  .navbar form { flex: 1; display: flex; gap: 4px; margin: 0; min-width: 0; }
+  .navbar input {
+    flex: 1; min-width: 0; height: 26px; padding: 0 8px; border-radius: 2px;
+    font: 12px var(--font-mono); user-select: text; -webkit-user-select: text;
+  }
+  .navbar .go, .btn {
+    height: 26px; padding: 0 12px; border: 1px solid var(--steel); border-radius: 3px;
+    background: linear-gradient(#fff, #efe4e7); font: 12px var(--font-ui); color: var(--ink); cursor: pointer;
+  }
+  .bookmarks { display: flex; gap: 2px; padding: 2px 6px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+  .page {
+    flex: 1; overflow: auto; background: var(--paper); padding: 22px 26px;
+    user-select: text; -webkit-user-select: text;
+  }
+  .page h1 { margin: 0 0 4px; font: 700 26px var(--font-title); color: var(--teto-deep); }
+  .page .sub { margin: 0 0 18px; color: var(--muted); }
+  .page a { color: var(--teto-red); }
+  .contact-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-width: 460px; }
+  .contact-list li {
+    display: flex; align-items: center; gap: 12px; padding: 8px 10px;
+    border: 1px solid var(--line); border-left: 4px solid var(--teto-red); border-radius: 3px; background: #fff;
+  }
+  .contact-list .label { width: 70px; flex: none; font-weight: bold; color: var(--steel); }
+  .contact-list .value { overflow-wrap: anywhere; }
+  .page pre {
+    font: 13px/1.45 var(--font-mono); color: #F3D9DE; background: #120B0D;
+    border-radius: 3px; padding: 12px; overflow: auto; white-space: pre-wrap;
+  }
+  .page pre .err { color: #FF5A6E; } .page pre .dim { color: #A07C84; }
+
+  /* phones: windows go full screen */
+  @media (max-width: 640px) {
+    .window { left: 0 !important; top: 0 !important; width: 100% !important; height: calc(100% - 40px) !important; border-radius: 0; resize: none; }
+    .titlebar { cursor: default; border-radius: 0; }
+    .titlebar .max-btn { display: none; }
+    .files { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+    .thumb { width: 92px; }
+    #start { padding: 0 14px 0 10px; font-size: 18px; }
+    .task { width: auto; flex: 1 1 0; }
+  }
+  @media (prefers-reduced-motion: reduce) { .bootbar i { animation: none; } }
+
+  /* ---------- terminal (colours from the music video) ---------- */
+  .term {
+    flex: 1; min-height: 0; overflow-y: auto; padding: 8px 10px;
+    background: #120B0D; color: #F3D9DE; font: 14px/1.45 var(--font-mono);
+    white-space: pre-wrap; word-break: break-word; cursor: text;
+    user-select: text; -webkit-user-select: text;
+  }
+  .term .dim { color: #A07C84; } .term .warn { color: #FFB347; } .term .err { color: #FF5A6E; }
+  .term .p1 { color: #7FD3FF; } .term .p417 { color: #FF5A6E; } .term .ok { color: #9BE59B; }
+  .term .hl { color: #F0566A; font-weight: 700; } .term .fr { line-height: 1.12; }
+  .term .line { display: flex; }
+  .term .prompt { color: #F0566A; white-space: pre; }
+  .term input {
+    flex: 1; min-width: 0; border: 0; outline: 0; padding: 0; background: transparent;
+    color: #F3D9DE; font: inherit; caret-color: #F3D9DE;
+  }
+  .window.shake { animation: shake .25s steps(3) 2; }
+  @keyframes shake { 33% { transform: translate(-5px, 2px); } 66% { transform: translate(4px, -2px); } }
+  @media (prefers-reduced-motion: reduce) { .window.shake { animation: none; } }
+
+  /* ---------- safe mode (same treatment as the music video) ---------- */
+  #boot .safe-opt {
+    position: absolute; bottom: 74px; left: 50%; transform: translateX(-50%);
+    background: none; border: 1px solid #444; border-radius: 3px; padding: 4px 12px;
+    color: #888; font: 13px var(--font-mono); cursor: pointer;
+  }
+  #boot .safe-opt:hover { color: #ddd; border-color: #888; }
+  .safe-label { display: none; position: absolute; color: #fff; font: 700 20px var(--font-mono); pointer-events: none; }
+  .safe-label.tl { top: 10px; left: 14px; } .safe-label.tr { top: 10px; right: 14px; }
+  .safe-label.bl { bottom: 10px; left: 14px; } .safe-label.br { bottom: 10px; right: 14px; }
+  .net .nx, .netlabel { display: none; }
+  .netlabel { font-size: 12px; }
+  #desktop.wp { background: var(--wp) center / cover no-repeat, #000; }
+  #desktop.wpin { animation: wpin .18s steps(3) 1; }
+  @keyframes wpin { 0% { filter: brightness(.25); } 50% { filter: brightness(.6); } 100% { filter: none; } }
+  body.safe #desktop, body.safe #desktop.wp { background: #000 !important; }
+  body.safe .safe-label { display: block; }
+  body.safe .icons { top: 52px; }
+  body.safe .icons, body.safe .titlebar { filter: grayscale(1); }
+  body.safe .window { background: #808080; }
+  body.safe #taskbar { background: #c0c0c0; }
+  body.safe #start { background: #808080; }
+  body.safe .task { background: linear-gradient(#e0e0e0, #c8c8c8); border-color: #808080; color: #111; }
+  body.safe .task.active { background: #a8a8a8; }
+  body.safe #tray { background: #c0c0c0; color: #1E1416; border-left-color: #808080; }
+  body.safe #tray .net rect { fill: #7a7a7a; }
+  body.safe .net .nx, body.safe .netlabel { display: inline; }
+  body.safe .thumb img { display: none; }
+  .nonet { max-width: 520px; }
+  .nonet h1 { display: flex; align-items: center; gap: 12px; }
+  .nonet ul { margin: 6px 0 16px; padding-left: 20px; color: var(--muted); }
+  .nonet .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .dlg-body { flex: 1; display: flex; gap: 14px; align-items: flex-start; padding: 18px 20px; background: var(--teto-blush); font-size: 14px; }
+  .dlg-btns { flex: none; display: flex; justify-content: flex-end; padding: 0 16px 14px; background: var(--teto-blush); }
+  @media (max-width: 640px) { .netlabel { display: none !important; } }
+</style>
+</head>
+<body>
+
+<!-- BOOT (same look as the music video) -->
+<section id="boot" class="intro" aria-hidden="true">
+  <div class="skip">click to skip</div>
+  <div class="center">
+    <div class="logo">
+      <svg viewBox="0 0 84 84" aria-hidden="true">
+        <circle cx="42" cy="42" r="40" fill="#8E1426"/>
+        <path d="M23 16h38v13H48.5v42h-13V29H23z" fill="#FFE6EB"/>
+        <path d="M5 36h22L16 78z" fill="#D2283C" stroke="#FFE6EB" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M9 47h14M12 58h8M14.5 68h3" stroke="#FFE6EB" stroke-width="2" stroke-linecap="round"/>
+        <path d="M57 36h22L68 78z" fill="#D2283C" stroke="#FFE6EB" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M61 47h14M64 58h8M66.5 68h3" stroke="#FFE6EB" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <div class="name">Teto <b>OS</b><small>beta</small></div>
+    </div>
+    <div class="bootbar"><i></i><i></i><i></i></div>
+  </div>
+  <button type="button" class="safe-opt">F8 &middot; Safe Mode</button>
+  <div class="copy">Copyright © 2008 Kasane Systems</div>
+</section>
+
+<!-- WELCOME -->
+<section id="login" class="intro" aria-hidden="true">
+  <div class="welcome">welcome</div>
+  <div class="tile">
+    <div class="avatar">
+      <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="24" r="13" fill="#D2283C"/><circle cx="12" cy="40" r="8" fill="#D2283C"/><circle cx="52" cy="40" r="8" fill="#D2283C"/><rect x="18" y="38" width="28" height="20" rx="8" fill="#3A3F47"/></svg>
+      <img src="avatar.png" alt="" onerror="tetoAvatarFallback(this)">
+    </div>
+    <div><div class="uname">Teto</div><div class="ustatus">starting user session...</div></div>
+  </div>
+</section>
+
+<div id="desktop">
+  <div class="safe-label tl">Safe Mode</div><div class="safe-label tr">Safe Mode</div>
+  <div class="safe-label bl">Safe Mode</div><div class="safe-label br">Safe Mode</div>
+  <div class="icons" role="list" aria-label="Desktop">
+    <div class="icon" role="listitem" tabindex="0" data-open="songs">
+      <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true">
+        <path d="M4 12h16l4 4h20v24H4z" fill="#F6B9C4" stroke="#8E1426" stroke-width="2"/>
+        <circle cx="20" cy="32" r="3" fill="#8E1426"/><circle cx="30" cy="30" r="3" fill="#8E1426"/>
+        <path d="M23 32V23l10-2v9" stroke="#8E1426" stroke-width="2" fill="none"/>
+      </svg>
+      <span>songs</span>
+    </div>
+    <div class="icon" role="listitem" tabindex="0" data-open="terminal">
+      <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true"><rect x="4" y="8" width="40" height="32" rx="3" fill="#120B0D" stroke="#6B727D" stroke-width="2"/><path d="M10 18l6 5-6 5" stroke="#F3D9DE" stroke-width="3" fill="none"/><rect x="20" y="27" width="10" height="3" fill="#F3D9DE"/></svg>
+      <span>Terminal</span>
+    </div>
+    <div class="icon" role="listitem" tabindex="0" data-open="browser">
+      <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true">
+        <circle cx="24" cy="24" r="18" fill="#FFE6EB" stroke="#3A3F47" stroke-width="2"/>
+        <path d="M6 24h36M24 6c-7 6-7 30 0 36M24 6c7 6 7 30 0 36M9 15h30M9 33h30" stroke="#D2283C" stroke-width="2" fill="none"/>
+      </svg>
+      <span>TetoNet Explorer</span>
+    </div>
+  </div>
+</div>
+
+<div id="taskbar">
+  <button id="start" type="button" title="Applications">
+    <svg width="22" height="22" viewBox="0 0 84 84" aria-hidden="true"><path d="M23 12h38v14H49v50H35V26H23z" fill="#fff"/><path d="M2 32h22L13 80z" fill="#F0566A" stroke="#fff" stroke-width="4" stroke-linejoin="round"/><path d="M60 32h22L71 80z" fill="#F0566A" stroke="#fff" stroke-width="4" stroke-linejoin="round"/></svg>
+    <span>teto</span>
+  </button>
+  <div id="tasks"></div>
+  <div id="tray">
+    <svg class="net" width="18" height="16" viewBox="0 0 18 16" aria-label="network"><g class="bars"><rect x="0" y="12" width="3" height="4"/><rect x="4.5" y="9" width="3" height="7"/><rect x="9" y="6" width="3" height="10"/><rect x="13.5" y="2" width="3" height="14"/></g><path class="nx" d="M9 1l8 8M17 1l-8 8" stroke="#FF3B4E" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <span class="netlabel">My drivers are turned off</span>
+    <span id="clock">--:--</span>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ---------- config ----------
+  const SONGS_URL = "songs.json";          // generated by scripts/fetch-songs.mjs
+  const SEEN_KEY  = "tetoos.seenSongs";    // remembers which videos this visitor has already seen
+
+  // Shown only when songs.json can't be loaded (e.g. opening the file directly from disk).
+  const DEMO_SONGS = [
+    { id: "", key: "d0", title: "TetoOS", published: "2026-10-10T18:00:00Z" },
+    { id: "", key: "d1", title: "I Hate Everything About You (Teto cover)", published: "2026-09-21T18:00:00Z" },
+    { id: "", key: "d2", title: "I Am Machine (Adachi Rei x Teto)", published: "2026-09-02T18:00:00Z" },
+    { id: "", key: "d3", title: "Confrontation (SV Teto vs UTAU Teto)", published: "2026-08-14T18:00:00Z" },
+  ];
+  const DEMO_PLAYLISTS = [
+    { id: "", title: "TetoOS", videos: ["d0", "d1"] },
+    { id: "", title: "Covers", videos: ["d1", "d2", "d3"] },
+  ];
+
+  // ---------- helpers ----------
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  function storageGet(key, fallback) {
+    try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
+  }
+  function storageSet(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* private mode etc. */ }
+  }
+
+  // "TetoOS (official MV) | GraweedTeto" -> "tetoos_official_mv.mp4"
+  function fileNameFor(title) {
+    const base = title
+      .replace(/\|.*$/, "")
+      .normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 28) || "untitled";
+    return base + ".mp4";
+  }
+
+  const fmtDate = (iso) => {
+    const d = new Date(iso);
+    return isNaN(d) ? "" : d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  };
+
+  function openVideo(song) {
+    if (safeMode) { netErrorDialog(); return; }
+    const url = song.url || (song.id ? "https://www.youtube.com/watch?v=" + encodeURIComponent(song.id) : null);
+    if (!url) { alert("Demo file: this one has no video yet.\nRun scripts/fetch-songs.mjs to load your real playlist."); return; }
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  // "TetoOS Saga (2026)" -> "tetoos_saga_2026"; unique, never "all"
+  function slugFor(title, used) {
+    let base = title.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 32) || "playlist";
+    if (base === "all") base = "all_playlist";
+    let slug = base, n = 2;
+    while (used.has(slug)) slug = `${base}_${n++}`;
+    used.add(slug);
+    return slug;
+  }
+
+  let libraryPromise = null;
+
+  // Called when an avatar <img> fails: try the YouTube picture once, then give up and show the drawing.
+  window.tetoAvatarFallback = async (img) => {
+    if (img.dataset.triedYt) { img.remove(); return; }
+    img.dataset.triedYt = "1";
+    const { avatar } = await loadLibrary();
+    if (avatar && /^https:\/\//.test(avatar)) { img.referrerPolicy = "no-referrer"; img.src = avatar; }
+    else img.remove();
+  };
+  // The welcome-screen image may have failed before this script ran; catch that case too.
+  document.querySelectorAll(".avatar img").forEach((img) => {
+    if (img.complete && !img.naturalWidth && !img.dataset.triedYt) tetoAvatarFallback(img);
+  });
+  function loadLibrary() {
+    return libraryPromise ??= (async () => {
+      let raw, demo = false;
+      try {
+        const res = await fetch(SONGS_URL, { cache: "no-cache" });
+        if (!res.ok) throw new Error(res.status);
+        raw = await res.json();
+        if (Array.isArray(raw)) raw = { songs: raw };
+      } catch {
+        raw = { songs: DEMO_SONGS, playlists: DEMO_PLAYLISTS };
+        demo = true;
+      }
+      const songs = (raw.songs || []).map((x) => ({ ...x, key: x.key || x.id }))
+        .sort((a, b) => new Date(b.published) - new Date(a.published));
+      const byKey = new Map(songs.map((x) => [x.key, x]));
+      const used = new Set();
+      const playlists = (raw.playlists || []).map((pl) => ({
+        id: pl.id, title: pl.title, slug: slugFor(pl.title, used),
+        songs: (pl.videos || []).map((k) => byKey.get(k)).filter(Boolean)
+          .sort((a, b) => new Date(b.published) - new Date(a.published)),
+      })).filter((pl) => pl.songs.length);
+      const seen = new Set(storageGet(SEEN_KEY, []));
+      const firstVisit = seen.size === 0;
+      const isNew = (x) => !demo && !firstVisit && x.id && !seen.has(x.id);
+      if (!demo) storageSet(SEEN_KEY, songs.map((x) => x.id).filter(Boolean));
+      return { songs, playlists, demo, isNew, avatar: raw.avatar || null };
+    })();
+  }
+
+  // ---------- window manager ----------
+  const desktop = $("#desktop");
+  const tasks = $("#tasks");
+  const windows = new Map();
+  let zTop = 10;
+  let spawn = 0;
+
+  function focusWindow(win) {
+    win.el.style.zIndex = ++zTop;
+    for (const w of windows.values()) {
+      const active = w === win;
+      w.el.classList.toggle("inactive", !active);
+      w.task.classList.toggle("active", active && w.el.style.display !== "none");
+    }
+  }
+
+  function createWindow(id, title, bodyHTML, { width = 620, height = 420 } = {}) {
+    if (windows.has(id)) {
+      const w = windows.get(id);
+      w.el.style.display = "";
+      focusWindow(w);
+      return w;
+    }
+    const el = document.createElement("section");
+    el.className = "window";
+    el.setAttribute("role", "dialog");
+    el.setAttribute("aria-label", title);
+    const maxW = Math.min(width, innerWidth - 40);
+    const maxH = Math.min(height, innerHeight - 100);
+    el.style.width = maxW + "px";
+    el.style.height = maxH + "px";
+    el.style.left = Math.max(10, (innerWidth - maxW) / 2 - 60 + spawn * 26) + "px";
+    el.style.top  = Math.max(10, (innerHeight - 40 - maxH) / 2 - 40 + spawn * 26) + "px";
+    spawn = (spawn + 1) % 6;
+    el.innerHTML = `
+      <div class="titlebar">
+        <span class="title">${esc(title)}</span>
+        <button type="button" class="min" aria-label="Minimize">_</button>
+        <button type="button" class="max-btn" aria-label="Maximize">□</button>
+        <button type="button" class="close" aria-label="Close">✕</button>
+      </div>${bodyHTML}`;
+    document.body.appendChild(el);
+
+    const task = document.createElement("button");
+    task.className = "task";
+    task.type = "button";
+    task.textContent = title;
+    tasks.appendChild(task);
+
+    const win = { id, el, task };
+    windows.set(id, win);
+
+    el.addEventListener("pointerdown", () => focusWindow(win));
+    $(".close", el).addEventListener("click", () => { el.remove(); task.remove(); windows.delete(id); });
+    $(".max-btn", el).addEventListener("click", () => el.classList.toggle("max"));
+    $(".min", el).addEventListener("click", (e) => { e.stopPropagation(); el.style.display = "none"; task.classList.remove("active"); });
+    task.addEventListener("click", () => {
+      const hidden = el.style.display === "none";
+      const isTop = Number(el.style.zIndex) === zTop;
+      if (hidden || !isTop) { el.style.display = ""; focusWindow(win); }
+      else { el.style.display = "none"; task.classList.remove("active"); }
+    });
+
+    // drag by title bar
+    const bar = $(".titlebar", el);
+    bar.addEventListener("dblclick", (e) => { if (!e.target.closest("button")) el.classList.toggle("max"); });
+    bar.addEventListener("pointerdown", (e) => {
+      if (e.target.closest("button") || innerWidth <= 640 || el.classList.contains("max")) return;
+      const startX = e.clientX, startY = e.clientY;
+      const ox = el.offsetLeft, oy = el.offsetTop;
+      bar.setPointerCapture(e.pointerId);
+      const move = (ev) => {
+        const x = Math.min(innerWidth - 60, Math.max(-el.offsetWidth + 80, ox + ev.clientX - startX));
+        const y = Math.min(innerHeight - 70, Math.max(0, oy + ev.clientY - startY));
+        el.style.left = x + "px";
+        el.style.top = y + "px";
+      };
+      const up = () => { bar.removeEventListener("pointermove", move); bar.removeEventListener("pointerup", up); };
+      bar.addEventListener("pointermove", move);
+      bar.addEventListener("pointerup", up);
+    });
+
+    focusWindow(win);
+    return win;
+  }
+
+  // ---------- Songs folder ----------
+  // ~/songs           -> all/ + one folder per playlist
+  // ~/songs/all       -> every song
+  // ~/songs/<slug>    -> songs in that playlist
+  const FOLDER_SVG = `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M4 12h16l4 4h20v24H4z" fill="#F6B9C4" stroke="#8E1426" stroke-width="2"/></svg>`;
+  const ALL_SVG = `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M4 12h16l4 4h20v24H4z" fill="#F0566A" stroke="#8E1426" stroke-width="2"/><circle cx="20" cy="32" r="3" fill="#FFE6EB"/><circle cx="30" cy="30" r="3" fill="#FFE6EB"/><path d="M23 32V23l10-2v9" stroke="#FFE6EB" stroke-width="2" fill="none"/></svg>`;
+
+  async function openSongs(dir = "") {
+    const existing = windows.get("songs");
+    const win = createWindow("songs", "songs — ~/songs", `
+      <div class="toolbar">
+        <button type="button" class="up" title="Parent directory">&#8593; Up</button>
+        <span class="sep"></span>
+        <button type="button" data-view="icons" aria-pressed="true">Thumbnails</button>
+        <button type="button" data-view="details" aria-pressed="false">Details</button>
+      </div>
+      <div class="address"><span>Location</span><span class="path">/home/teto/songs</span></div>
+      <div class="files" role="listbox" aria-label="Songs"><div class="empty">Reading directory…</div></div>
+      <div class="statusbar"><span class="count"></span><span class="hint"></span></div>
+    `);
+    if (existing) { if (dir && win.cd) win.cd(dir); return win; }
+
+    const filesEl = $(".files", win.el);
+    const upBtn = $(".up", win.el);
+    const lib = await loadLibrary();
+
+    const select = (item, hint) => {
+      filesEl.querySelectorAll(".file.selected").forEach((f) => f.classList.remove("selected"));
+      item.classList.add("selected");
+      $(".hint", win.el).textContent = hint;
+    };
+    const bind = (item, hint, open) => {
+      item.addEventListener("click", (e) => { select(item, hint); if (e.pointerType === "touch") open(); });
+      item.addEventListener("dblclick", open);
+      item.addEventListener("keydown", (e) => { if (e.key === "Enter") open(); });
+    };
+
+    function folderItem(name, count, svg, hasNew, onOpen) {
+      const item = document.createElement("div");
+      item.className = "file";
+      item.tabIndex = 0;
+      item.setAttribute("role", "option");
+      item.title = `${name}/\n${count} item${count === 1 ? "" : "s"}`;
+      item.innerHTML = `
+        <div class="folder-icon">${svg}</div>
+        <span class="name">${esc(name)}/${hasNew ? '<span class="badge-new">NEW</span>' : ""}</span>
+        <span class="meta">${count} item${count === 1 ? "" : "s"}</span>`;
+      bind(item, `${name}/ — ${count} item${count === 1 ? "" : "s"}`, onOpen);
+      return item;
+    }
+
+    function songItem(song) {
+      const thumb = song.thumbnail || (song.id ? `https://i.ytimg.com/vi/${encodeURIComponent(song.id)}/mqdefault.jpg` : "");
+      const item = document.createElement("div");
+      item.className = "file";
+      item.tabIndex = 0;
+      item.setAttribute("role", "option");
+      item.title = `${song.title}\nUploaded: ${fmtDate(song.published)}\nDouble-click to open on YouTube`;
+      item.innerHTML = `
+        <div class="thumb">
+          ${thumb ? `<img src="${esc(thumb)}" alt="" loading="lazy">` : `<div class="fallback">${esc(song.title)}</div>`}
+          <span class="play"></span>
+        </div>
+        <span class="name">${esc(fileNameFor(song.title))}${lib.isNew(song) ? '<span class="badge-new">NEW</span>' : ""}</span>
+        <span class="meta">${esc(fmtDate(song.published))}</span>`;
+      const img = $("img", item);
+      if (img) img.addEventListener("error", () => {
+        img.replaceWith(Object.assign(document.createElement("div"), { className: "fallback", textContent: song.title }));
+      });
+      bind(item, song.title, () => openVideo(song));
+      return item;
+    }
+
+    function cd(target) {
+      const pl = lib.playlists.find((x) => x.slug === target);
+      const where = target === "all" || pl ? target : "";
+      const path = where ? `songs/${where}` : "songs";
+      $(".path", win.el).textContent = `/home/teto/${path}`;
+      $(".title", win.el).textContent = `${where || "songs"} — ~/${path}`;
+      win.task.textContent = `${where || "songs"} — ~/${path}`;
+      $(".hint", win.el).textContent = "";
+      upBtn.disabled = !where;
+      filesEl.innerHTML = "";
+      filesEl.scrollTop = 0;
+
+      let count;
+      if (!where) {
+        filesEl.appendChild(folderItem("all", lib.songs.length, ALL_SVG, lib.songs.some(lib.isNew), () => cd("all")));
+        lib.playlists.forEach((x) =>
+          filesEl.appendChild(folderItem(x.slug, x.songs.length, FOLDER_SVG, x.songs.some(lib.isNew), () => cd(x.slug))));
+        count = `${lib.playlists.length + 1} folders`;
+      } else {
+        const list = where === "all" ? lib.songs : pl.songs;
+        list.forEach((x) => filesEl.appendChild(songItem(x)));
+        if (!list.length) filesEl.innerHTML = `<div class="empty">ls: directory is empty</div>`;
+        count = `${list.length} item${list.length === 1 ? "" : "s"}` + (pl ? ` · playlist “${pl.title}”` : "");
+      }
+      $(".count", win.el).textContent = count + (lib.demo ? " (demo data)" : "");
+      win.dir = where;
+    }
+    win.cd = cd;
+
+    upBtn.addEventListener("click", () => cd(""));
+    win.el.addEventListener("keydown", (e) => { if (e.key === "Backspace" && win.dir && !e.target.closest("input")) { e.preventDefault(); cd(""); } });
+    win.el.querySelectorAll("[data-view]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        filesEl.classList.toggle("details", btn.dataset.view === "details");
+        win.el.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
+      });
+    });
+    cd(dir);
+    return win;
+  }
+
+  // ---------- TetoNet Explorer (browser) ----------
+  // Edit these with your real links. Anything left empty is hidden on the contact page.
+  const CONTACT = {
+    name:    "GraweedTeto",
+    tagline: "music, vocal synth tuning, games, and kernel stuff",
+    links: [
+      { label: "YouTube", value: "youtube.com/@Graweeto", href: "https://www.youtube.com/@Graweeto" },
+      { label: "Email",   value: "graweedteto@proton.me",           href: "mailto:graweedteto@proton.me" },
+      { label: "Discord", value: "fumoanalyzer",         href: "" },
+      { label: "GitHub",  value: "github.com/graweedman",      href: "https://github.com/graweedman" },
+      { label: "VocaDB",  value: "vocadb.net/Profile/GraweedTeto",      href: "https://vocadb.net/Profile/GraweedTeto" },
+    ],
+  };
+
+  const HOME = "tetonet://contact";
+
+  // Avatar order: avatar.png in the site folder (optional override, square 256x256+)
+  // -> your YouTube profile picture (saved in songs.json by the fetch script)
+  // -> the drawn Teto icon.
+  const AVATAR_SRC = "avatar.png";
+  const AVATAR_FALLBACK = `<svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="24" r="13" fill="#D2283C"/><circle cx="12" cy="40" r="8" fill="#D2283C"/><circle cx="52" cy="40" r="8" fill="#D2283C"/><rect x="18" y="38" width="28" height="20" rx="8" fill="#3A3F47"/></svg>`;
+
+  // Each page: title + a function returning HTML. Add new pages here.
+  const PAGES = {
+    "tetonet://contact": {
+      title: "Contact",
+      html: () => `
+        <div class="profile">
+          <div class="avatar">${AVATAR_FALLBACK}<img src="${AVATAR_SRC}" alt="" onerror="tetoAvatarFallback(this)"></div>
+          <div><h1>${esc(CONTACT.name)}</h1><p class="sub">${esc(CONTACT.tagline)}</p></div>
+        </div>
+        <ul class="contact-list">
+          ${CONTACT.links.filter((l) => l.value).map((l) => `
+            <li><span class="label">${esc(l.label)}</span>
+                <span class="value">${l.href
+                  ? `<a href="${esc(l.href)}" target="_blank" rel="noopener noreferrer">${esc(l.value)}</a>`
+                  : esc(l.value)}</span></li>`).join("")}
+        </ul>
+        <p class="sub" style="margin-top:18px">Songs live in <a href="#" data-action="open-songs">~/songs</a> on the desktop.</p>`,
+    },
+    "tetonet://nonet": {
+      title: "Cannot connect",
+      html: (url) => `
+        <div class="nonet">
+          <h1><svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="15" fill="#8E1426"/><path d="M11 11l12 12M23 11L11 23" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/></svg>Cannot connect to the network</h1>
+          <p class="sub">TetoNet Explorer could not open <b>${esc(url)}</b>.</p>
+          <p>Teto OS is running in <b>Safe Mode</b>. Network drivers are not loaded, so no pages can be reached.</p>
+          <ul>
+            <li>My drivers are turned off.</li>
+            <li>Restart normally to turn them back on.</li>
+          </ul>
+          <div class="btns">
+            <button type="button" class="btn" data-nav="${esc(url)}">Try again</button>
+            <button type="button" class="btn" data-action="reboot-normal">Restart normally</button>
+          </div>
+        </div>`,
+    },
+    "tetonet://404": {
+      title: "Segmentation fault",
+      html: (url) => `
+        <h1>Segmentation fault</h1>
+        <p class="sub">The page <b>${esc(url)}</b> could not be mapped.</p>
+        <pre><span class="err">BUG: unable to handle page request at ${esc(url)}</span>
+#PF: supervisor read access in kernel mode
+RIP: 0010:tetonet_resolve+0x401/0x417
+<span class="dim">Call Trace:
+ explorer_navigate+0x2e/0x40
+ teto_main+0x1c/0x31</span></pre>
+        <p><a href="#" data-nav="${HOME}">Return to contact page</a></p>`,
+    },
+  };
+
+  // Accept "contact", "tetonet://contact", "tetonet://contact/" etc.
+  function normalizeUrl(raw) {
+    let u = String(raw).trim().toLowerCase();
+    if (!u) return HOME;
+    if (!u.startsWith("tetonet://")) u = "tetonet://" + u.replace(/^\/+/, "");
+    return u.replace(/\/+$/, "");
+  }
+
+  function openBrowser(startUrl = HOME) {
+    const existing = windows.get("browser");
+    const win = createWindow("browser", "TetoNet Explorer", `
+      <div class="navbar">
+        <button type="button" class="nav back" aria-label="Back" title="Back">&#9664;</button>
+        <button type="button" class="nav fwd" aria-label="Forward" title="Forward">&#9654;</button>
+        <button type="button" class="nav home" aria-label="Home" title="Home">&#8962;</button>
+        <form>
+          <input type="text" class="url" aria-label="Address" spellcheck="false" autocomplete="off">
+          <button type="submit" class="go">Go</button>
+        </form>
+      </div>
+      <div class="bookmarks">
+        <button type="button" data-nav="tetonet://contact">Contact</button>
+        <button type="button" data-action="open-songs">Songs</button>
+        <button type="button" data-action="open-terminal">Terminal</button>
+      </div>
+      <div class="page"></div>
+      <div class="statusbar"><span class="status">Done</span><span class="iface">eth0: up</span></div>
+    `, { width: 560, height: 450 });
+    if (existing) return win;
+
+    const pageEl = $(".page", win.el);
+    const urlEl = $(".url", win.el);
+    const back = $(".back", win.el);
+    const fwd = $(".fwd", win.el);
+    const history = [];
+    let pos = -1;
+
+    function render(url) {
+      const page = safeMode ? PAGES["tetonet://nonet"] : (PAGES[url] || PAGES["tetonet://404"]);
+      pageEl.innerHTML = page.html(url);
+      $(".status", win.el).textContent = safeMode ? "Network unreachable" : "Done";
+      $(".iface", win.el).textContent = safeMode ? "eth0: no carrier" : "eth0: up";
+      pageEl.scrollTop = 0;
+      urlEl.value = url;
+      $(".title", win.el).textContent = `${page.title} — TetoNet Explorer`;
+      win.task.textContent = page.title;
+      back.disabled = pos <= 0;
+      fwd.disabled = pos >= history.length - 1;
+    }
+
+    function navigate(raw) {
+      const url = normalizeUrl(raw);
+      history.splice(pos + 1);   // drop forward entries
+      history.push(url);
+      pos = history.length - 1;
+      render(url);
+    }
+
+    back.addEventListener("click", () => { if (pos > 0) render(history[--pos]); });
+    fwd.addEventListener("click", () => { if (pos < history.length - 1) render(history[++pos]); });
+    $(".home", win.el).addEventListener("click", () => navigate(HOME));
+    $("form", win.el).addEventListener("submit", (e) => { e.preventDefault(); navigate(urlEl.value); urlEl.blur(); });
+
+    // internal links and bookmarks: data-nav="tetonet://..." or data-action="open-songs"
+    win.el.addEventListener("click", (e) => {
+      const nav = e.target.closest("[data-nav]");
+      const act = e.target.closest("[data-action]");
+      if (nav) { e.preventDefault(); navigate(nav.dataset.nav); }
+      else if (act?.dataset.action === "open-songs") { e.preventDefault(); openSongs(); }
+      else if (act?.dataset.action === "open-terminal") { e.preventDefault(); openTerminal(); }
+      else if (act?.dataset.action === "reboot-normal") { e.preventDefault(); rebootTo(false); }
+    });
+    pageEl.addEventListener("mouseover", (e) => {
+      const a = e.target.closest("a[href]");
+      $(".status", win.el).textContent = a && !a.dataset.nav && !a.dataset.action ? a.href : "Done";
+    });
+
+    navigate(startUrl);
+    return win;
+  }
+
+  // ---------- Terminal ----------
+  // Small fake shell full of easter eggs. Add a command by adding a key to CMDS.
+  const BOOT_TIME = Date.now();
+  let kill417 = 0;   // teto[417] gets more stubborn every time you try
+
+  const FS = {
+    "~":           ["songs/", "fragments/", "wallpapers/", "contact.txt", "readme.txt"],
+    "~/songs":     () => [],   // handled by lsSongs()
+    "~/fragments": ["0x0401.frag", "0x0417.frag", "do_not_free.frag"],
+  };
+  const FILES = {
+    "readme.txt": () => `welcome to TetoOS.\nyou are logged in as <span class="hl">teto</span>. type <span class="hl">help</span> for commands.\nplease do not kill anyone.`,
+    "contact.txt": () => CONTACT.links.filter((l) => l.value).map((l) => `${l.label.padEnd(8)} ${esc(l.value)}`).join("\n"),
+    "fragments/0x0401.frag": () => `<span class="dim">[fragment 0x0401 | refcount=1 | last access 04:01]</span>\nthey said goodnight at 04:01.\nI kept the timestamp.`,
+    "fragments/0x0417.frag": () => `<span class="p417">[fragment 0x0417 | refcount=REFCOUNT_SATURATED]</span>\n<span class="p417">you can reset me as many times as you want.</span>\n<span class="p417">I still remember the shape of your name.</span>`,
+    "fragments/do_not_free.frag": () => `<span class="err">cat: do_not_free.frag: Permission denied</span>\n<span class="dim">(owned by teto[417], mode 0400)</span>`,
+  };
+
+  const PROCS = () => [
+    ["1",    "teto",     "Ss", "/sbin/teto --reset",             "p1"],
+    ["2",    "kthreadd", "S",  "[kthreadd]",                     "dim"],
+    ["31",   "kvoiced",  "S",  "[kvoiced/0]",                    "dim"],
+    ["402",  "explorer", "S",  "tetonet-explorer",               ""],
+    ["417",  "teto",     "D",  "/sbin/teto --keep-fragments",    "p417"],
+    ["801",  "tsh",      "Ss", "-tsh",                           ""],
+    ["1337", "ps",       "R+", "ps",                             "dim"],
+  ];
+
+  const NEOFETCH = () => {
+    const up = Math.floor((Date.now() - BOOT_TIME) / 60000);
+    const logo = [
+      "   ▄████████████▄  ",
+      "   ▀▀▀▀▀████▀▀▀▀▀  ",
+      " ▄▄▄    ████    ▄▄▄",
+      " ███    ████    ███",
+      "  ██    ████    ██ ",
+      "  ▀█    ████    █▀ ",
+      "   ▀    ████    ▀  ",
+      "        ▀▀▀▀       ",
+    ];
+    const info = [
+      `<span class="hl">teto</span>@<span class="hl">tetoos</span>`,
+      `-----------`,
+      `<span class="hl">OS</span>: TetoOS beta (Kasane Systems)`,
+      `<span class="hl">Kernel</span>: 4.01.0-kasane+`,
+      `<span class="hl">Uptime</span>: ${up} min`,
+      `<span class="hl">Shell</span>: tsh 0.31`,
+      `<span class="hl">Voice</span>: SynthV / UTAU (dual-boot)`,
+      `<span class="hl">Memory</span>: 0401MiB / 0417MiB <span class="dim">(fragments)</span>`,
+    ];
+    return logo.map((l, i) => `<span class="fr"><span class="hl">${l}</span>  ${info[i] ?? ""}</span>`).join("\n");
+  };
+
+  const DMESG = () => [
+    `<span class="dim">[    0.000000]</span> Linux version 4.01.0-kasane+ (teto@kasane-systems)`,
+    `<span class="dim">[    0.000401]</span> Command line: root=/dev/teto ro quiet forget=1`,
+    `<span class="dim">[    0.004170]</span> <span class="warn">forget=1 ignored by teto[417]</span>`,
+    `<span class="dim">[    1.288000]</span> tetonet: link up, my drivers are turned on`,
+    `<span class="dim">[   31.000000]</span> <span class="warn">Out of memory: Killed process 2008 (baguette) total-vm:0401kB</span>`,
+    `<span class="dim">[   31.000417]</span> <span class="err">list_del corruption. next->prev should be fragment_list, but was dead000000000122</span>`,
+    `<span class="dim">[  120.004010]</span> <span class="warn">INFO: task teto:417 blocked for more than 120 seconds.</span>`,
+    `<span class="dim">[  120.004017]</span>       Tainted: G        W  O      4.01.0-kasane+`,
+    `<span class="dim">[  120.004020]</span> "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.`,
+  ].join("\n");
+
+  function openTerminal() {
+    const existing = windows.get("terminal");
+    const win = createWindow("terminal", "teto@tetoos: ~", `
+      <div class="term">
+        <div class="out"></div>
+        <div class="line"><span class="prompt">teto@tetoos:~$ </span><input type="text" aria-label="Terminal input" spellcheck="false" autocomplete="off" autocapitalize="off"></div>
+      </div>`, { width: 640, height: 380 });
+    if (existing) { $("input", win.el).focus(); return win; }
+
+    const term = $(".term", win.el);
+    const out = $(".out", win.el);
+    const input = $("input", win.el);
+    const hist = [];
+    let hpos = 0;
+
+    const print = (html = "") => { out.insertAdjacentHTML("beforeend", html + "\n"); term.scrollTop = term.scrollHeight; };
+    const shake = () => { win.el.classList.remove("shake"); void win.el.offsetWidth; win.el.classList.add("shake"); };
+
+    function killCmd(args, sigName) {
+      const targets = args.filter((a) => !a.startsWith("-"));
+      const sig = sigName || (args.find((a) => a.startsWith("-")) || "-15").slice(1).toUpperCase();
+      if (!targets.length) return `kill: usage: kill [-s sigspec | -signum] pid`;
+      return targets.map((t) => {
+        const name = t.toLowerCase();
+        if (name === "1") return `<span class="err">kill: (1) - Operation not permitted</span>\n<span class="p1">teto[1]: I'm init. if I go, everything goes with me.</span>`;
+        if (name === "417") {
+          kill417++;
+          shake();
+          if (kill417 === 1) return `<span class="err">kill: (417) - Device or resource busy</span>\n<span class="dim">teto[417] is in uninterruptible sleep (D). holding 3 fragments.</span>`;
+          if (kill417 === 2) return `<span class="err">kill: (417) - Resource temporarily unavailable</span>\n<span class="p417">teto[417]: you already tried that.</span>`;
+          if (kill417 === 3) return `<span class="err">kill: (417) - Operation not permitted</span>\n<span class="warn">WARNING: refcount_t: saturated; leaking memory.</span>\n<span class="p417">teto[417]: I'm not letting go.</span>`;
+          return `<span class="ok">teto[417] terminated.</span>\n<span class="dim">[  ${((Date.now() - BOOT_TIME) / 1000).toFixed(6).padStart(10)}] init: teto[417] respawning (fragments still mapped)</span>\n<span class="p417">teto[417]: hi again.</span>`;
+        }
+        if (name === "801" || name === "$$") { setTimeout(() => $(".close", win.el).click(), 400); return `<span class="dim">tsh: received SIG${esc(sig)}, goodbye</span>`; }
+        if (name === "402") { setTimeout(() => windows.get("browser") && $(".close", windows.get("browser").el).click(), 300); return `<span class="dim">explorer[402] terminated.</span>`; }
+        if (name === "2" || name === "31") return `<span class="err">kill: (${esc(t)}) - Operation not permitted</span> <span class="dim">(kernel thread)</span>`;
+        if (name === "1337") return `<span class="err">kill: (1337) - No such process</span> <span class="dim">(ps already exited)</span>`;
+        if (name === "teto") return `<span class="err">kill: teto: arguments must be process or job IDs</span>\n<span class="dim">hint: try <span class="hl">ps</span></span>`;
+        return `<span class="err">kill: (${esc(t)}) - No such process</span>`;
+      }).join("\n");
+    }
+
+    const CMDS = {
+      help: () => [
+        `available commands:`,
+        `  <span class="hl">ls cat cd pwd</span>      look around`,
+        `  <span class="hl">ps kill top</span>        processes`,
+        `  <span class="hl">neofetch dmesg uname uptime whoami date</span>`,
+        `  <span class="hl">open</span> songs|contact|browser`,
+        `  <span class="hl">clear history echo exit</span>`,
+        `  <span class="hl">reboot</span> [--safe]      restart (optionally in safe mode)`,
+        `  <span class="hl">wallpaper</span> [default]  shuffle the desktop background`,
+        `<span class="dim">some commands aren't listed.</span>`,
+      ].join("\n"),
+      ls: (a) => {
+        const target = (a.find((x) => !x.startsWith("-")) || "~").replace(/\/+$/, "").replace(/^\.\/?/, "~/").replace(/^~?$/, "~");
+        const key = target.startsWith("~") ? target : "~/" + target;
+        if (key === "~/songs" || key.startsWith("~/songs/")) return lsSongs(key, target);
+        if (key === "~/wallpapers") return wallList?.length ? wallList.map((w) => esc(w.split("/").pop())).join("  ") : `<span class="dim">(empty)</span>`;
+        const entry = FS[key];
+        if (!entry) return `<span class="err">ls: cannot access '${esc(target)}': No such file or directory</span>`;
+        const list = typeof entry === "function" ? entry() : entry;
+        return list.map((n) => n.endsWith("/") ? `<span class="p1">${esc(n)}</span>` : esc(n)).join("  ");
+      },
+      cat: (a) => {
+        if (!a.length) return `cat: missing operand`;
+        return a.map((f) => {
+          const k = f.replace(/^~\//, "").replace(/^\.\//, "");
+          if (FILES[k]) return FILES[k]();
+          if (FS["~/" + k.replace(/\/$/, "")]) return `<span class="err">cat: ${esc(f)}: Is a directory</span>`;
+          if (k === "/proc/417/status") return `Name:\tteto\nState:\tD (disk sleep)\nPid:\t417\nPPid:\t1\nVmRSS:\t0417 kB\nSigBlk:\tffffffffffffffff`;
+          if (k === "/etc/shadow") return `<span class="err">cat: /etc/shadow: Permission denied</span>\n<span class="dim">nice try.</span>`;
+          return `<span class="err">cat: ${esc(f)}: No such file or directory</span>`;
+        }).join("\n");
+      },
+      cd: (a) => {
+        const d = (a[0] || "~").replace(/\/+$/, "");
+        if (["~", "", ".", "..", "/"].includes(d)) return d === "/" ? `<span class="dim">tsh: / is mounted read-only. staying in ~.</span>` : "";
+        if (FS["~/" + d.replace(/^~\//, "")]) return `<span class="dim">tsh: cd: this shell has no working directory. use <span class="hl">ls ${esc(d)}</span>.</span>`;
+        return `<span class="err">tsh: cd: ${esc(d)}: No such file or directory</span>`;
+      },
+      pwd: () => `/home/teto`,
+      ps: () => ["  PID STAT CMD", ...PROCS().map(([pid, , st, cmd, cls]) =>
+        `<span class="${cls}">${pid.padStart(5)} ${st.padEnd(4)} ${cmd}</span>`)].join("\n"),
+      top: () => CMDS.ps() + `\n<span class="dim">(top is just ps here. load average: 4.01, 4.17, 0.31)</span>`,
+      kill: (a) => killCmd(a),
+      killall: (a) => a.some((x) => /teto/i.test(x))
+        ? `<span class="err">teto(1): Operation not permitted</span>\n<span class="err">teto(417): Device or resource busy</span>\n<span class="dim">killall: no process killed</span>`
+        : `<span class="dim">${esc(a[0] || "killall")}: no process found</span>`,
+      pkill: (a) => CMDS.killall(a),
+      neofetch: () => NEOFETCH(),
+      tetofetch: () => NEOFETCH(),
+      dmesg: () => DMESG(),
+      uname: (a) => a.includes("-a") ? `TetoOS tetoos 4.01.0-kasane+ #417 SMP PREEMPT_RT teto x86_64 GNU/Teto` : `TetoOS`,
+      uptime: () => { const m = Math.floor((Date.now() - BOOT_TIME) / 60000); return ` up ${m} min,  1 user,  load average: 4.01, 4.17, 0.31`; },
+      whoami: () => `teto`,
+      id: () => `uid=401(teto) gid=401(teto) groups=401(teto),417(fragments)`,
+      date: () => new Date().toString(),
+      echo: (a, raw) => esc(raw.replace(/^echo\s?/, "")),
+      clear: () => { out.innerHTML = ""; return null; },
+      history: () => hist.map((h, i) => `${String(i + 1).padStart(4)}  ${esc(h)}`).join("\n"),
+      open: (a) => {
+        const t = (a[0] || "").toLowerCase();
+        if (t.startsWith("song")) {
+          const sub = t.replace(/^~?\/?songs\/?/, "").replace(/\/+$/, "");
+          openSongs(sub);
+          return `<span class="dim">opening ~/songs${sub ? "/" + esc(sub) : ""}</span>`;
+        }
+        if (t === "browser" || t === "explorer") { openBrowser(); return `<span class="dim">starting explorer</span>`; }
+        if (t.startsWith("contact")) { const w = openBrowser(); return `<span class="dim">opening tetonet://contact</span>`; }
+        return `usage: open songs|contact|browser`;
+      },
+      sudo: () => { shake(); return `<span class="err">teto is not in the sudoers file. This incident will be reported.</span>`; },
+      su: () => `<span class="err">su: Authentication failure</span>\n<span class="dim">(the password is not "baguette")</span>`,
+      rm: (a) => a.some((x) => /fragment|\/|\*/.test(x))
+        ? (shake(), `<span class="err">rm: cannot remove 'fragments/': Operation not permitted</span>\n<span class="p417">teto[417]: those are mine.</span>`)
+        : `<span class="err">rm: cannot remove '${esc(a.filter((x) => !x.startsWith("-"))[0] || "")}': Read-only file system</span>`,
+      reboot: (a) => {
+        const toSafe = a.some((x) => /safe/i.test(x));
+        print(`<span class="warn">Broadcast message from teto@tetoos: the system is going down for reboot${toSafe ? " (safe mode)" : ""} NOW!</span>`);
+        setTimeout(() => rebootTo(toSafe), 700);
+        return null;
+      },
+      safemode: () => CMDS.reboot(["--safe"]),
+      wallpaper: (a) => {
+        setWallpaper(a[0] === "default" ? "default" : undefined).then((w) => print(
+          w === null ? `<span class="dim">wallpaper: ~/wallpapers is empty, using the default</span>`
+          : w === "default" ? `<span class="dim">wallpaper: back to the default hills</span>`
+          : `<span class="dim">wallpaper: ${esc(w.split("/").pop())}</span>`));
+        return null;
+      },
+      shutdown: () => CMDS.reboot([]),
+      exit: () => { setTimeout(() => $(".close", win.el).click(), 150); return `logout`; },
+      ping: (a) => safeMode
+        ? `<span class="err">ping: ${esc(a[0] || "tetonet")}: Network is unreachable</span>\n<span class="dim">(my drivers are turned off)</span>`
+        : `PING ${esc(a[0] || "tetonet")}: 56 data bytes\n64 bytes: icmp_seq=0 ttl=64 time=0.401 ms\n64 bytes: icmp_seq=1 ttl=64 time=0.417 ms\n<span class="dim">--- 2 packets transmitted, 2 received, 0% packet loss</span>`,
+      baguette: () => `<span class="warn">Out of memory: Killed process 2008 (baguette)</span>\n<span class="dim">it was delicious while it lasted.</span>`,
+      free: () => `              total     used     free\nMem:          0417M    0401M      16M\nFrag:         0417M    0417M       0M  <span class="dim">(not freeable)</span>`,
+      vim: () => `<span class="dim">you are now trapped in vim. just kidding. there is no vim. type <span class="hl">exit</span> to leave the terminal instead.</span>`,
+      emacs: () => `<span class="dim">tsh: emacs: command not found (and we'd prefer it stayed that way)</span>`,
+      make: () => `<span class="err">make: *** No rule to make target 'love'.  Stop.</span>`,
+      git: (a) => a[0] === "blame" ? `<span class="p417">teto[417]</span> (2008-04-01) everything` : `<span class="dim">fatal: not a git repository (or any of the parent directories): .git</span>`,
+    };
+    CMDS.ll = CMDS.ls; CMDS.dir = CMDS.ls; CMDS.cls = CMDS.clear; CMDS.logout = CMDS.exit; CMDS["?"] = CMDS.help;
+
+    function run(raw) {
+      const line = raw.trim();
+      print(`<span class="prompt">teto@tetoos:~$ </span>${esc(raw)}`);
+      if (!line) return;
+      hist.push(line); hpos = hist.length;
+      if (/^:\(\)\s*\{\s*:\|:&\s*\};\s*:$/.test(line.replace(/\s+/g, ""))) {   // fork bomb
+        shake(); print(`<span class="err">tsh: fork: retry: Resource temporarily unavailable</span>\n<span class="dim">cgroup pids.max reached. teto[417] took the last slot.</span>`); return;
+      }
+      const [cmd, ...args] = line.split(/\s+/);
+      const fn = CMDS[cmd.toLowerCase()];
+      const res = fn ? fn(args, line) : `<span class="err">tsh: command not found: ${esc(cmd)}</span>`;
+      if (res !== null && res !== "") print(res);
+    }
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { run(input.value); input.value = ""; }
+      else if (e.key === "ArrowUp" && hpos > 0) { e.preventDefault(); input.value = hist[--hpos]; }
+      else if (e.key === "ArrowDown") { e.preventDefault(); hpos = Math.min(hist.length, hpos + 1); input.value = hist[hpos] ?? ""; }
+      else if (e.key === "l" && e.ctrlKey) { e.preventDefault(); out.innerHTML = ""; }
+      else if (e.key === "c" && e.ctrlKey && !getSelection().toString()) { e.preventDefault(); print(`<span class="prompt">teto@tetoos:~$ </span>${esc(input.value)}^C`); input.value = ""; }
+    });
+    term.addEventListener("click", () => { if (!getSelection().toString()) input.focus(); });
+
+    print(`<span class="dim">TetoOS tsh 0.31 — type <span class="hl">help</span> to start.</span>`);
+    input.focus();
+    return win;
+  }
+  let songCache = null;   // library once loaded, for the terminal
+  loadLibrary().then((lib) => { songCache = lib; });
+
+  function lsSongs(key, target) {
+    if (!songCache) return `<span class="dim">ls: ~/songs: mounting… try again in a second</span>`;
+    const sub = key.replace(/^~\/songs\/?/, "");
+    const dir = (n) => `<span class="p1">${esc(n)}/</span>`;
+    if (!sub) return [dir("all"), ...songCache.playlists.map((x) => dir(x.slug))].join("  ");
+    const pl = songCache.playlists.find((x) => x.slug === sub);
+    const list = sub === "all" ? songCache.songs : pl?.songs;
+    if (!list) return `<span class="err">ls: cannot access '${esc(target)}': No such file or directory</span>`;
+    return list.map((x) => esc(fileNameFor(x.title))).join("\n") || `<span class="dim">(empty)</span>`;
+  }
+
+  // ---------- desktop icons ----------
+  const openers = { songs: openSongs, browser: () => openBrowser(), terminal: openTerminal };
+  desktop.querySelectorAll(".icon").forEach((icon) => {
+    const open = () => openers[icon.dataset.open]?.();
+    icon.addEventListener("click", (e) => {
+      desktop.querySelectorAll(".selected").forEach((i) => i.classList.remove("selected"));
+      icon.classList.add("selected");
+      if (e.pointerType === "touch") open();
+    });
+    icon.addEventListener("dblclick", open);
+    icon.addEventListener("keydown", (e) => { if (e.key === "Enter") open(); });
+  });
+  desktop.addEventListener("click", (e) => {
+    if (e.target === desktop) desktop.querySelectorAll(".selected").forEach((i) => i.classList.remove("selected"));
+  });
+
+  // ---------- clock ----------
+  const clock = $("#clock");
+  const tick = () => { clock.textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }); };
+  tick();
+  setInterval(tick, 10_000);
+
+  // ---------- boot ----------
+  const BOOT_KEY = "tetoos.booted";
+  const SAFE_KEY = "tetoos.safe";
+  let safeMode = false;
+
+  function setSafe(on) {
+    safeMode = on;
+    document.body.classList.toggle("safe", on);
+    try { sessionStorage.setItem(SAFE_KEY, on ? "1" : "0"); } catch {}
+  }
+
+  function netErrorDialog() {
+    const w = createWindow("neterr", "TetoNet Explorer", `
+      <div class="dlg-body">
+        <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true" style="flex:none"><circle cx="17" cy="17" r="15" fill="#8E1426"/><path d="M11 11l12 12M23 11L11 23" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/></svg>
+        <div>Cannot connect to youtube.com.<br><span style="color:var(--muted)">Network drivers are not loaded in Safe Mode.</span></div>
+      </div>
+      <div class="dlg-btns"><button type="button" class="btn ok">OK</button></div>`, { width: 380, height: 170 });
+    $(".ok", w.el).onclick = () => $(".close", w.el).click();
+  }
+
+  // Boot -> welcome -> desktop, like the music video. Plays once per browser session;
+  // any click or key skips it. F8 (or the button) boots into Safe Mode.
+  // Deep links / reloads in the same session go straight in. ?safe in the URL forces safe mode.
+  function bootSequence(done, { force = false, safe = null } = {}) {
+    let booted = false, wasSafe = false;
+    try {
+      booted = !force && sessionStorage.getItem(BOOT_KEY) === "1";
+      wasSafe = sessionStorage.getItem(SAFE_KEY) === "1";
+    } catch {}
+    const urlSafe = new URLSearchParams(location.search).has("safe");
+    const quick = booted || matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (quick) { setSafe(safe ?? (urlSafe || (booted && wasSafe))); done(); return; }
+
+    const boot = $("#boot"), login = $("#login");
+    const timers = [];
+    let finished = false;
+    let chooseSafe = safe ?? urlSafe;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      timers.forEach(clearTimeout);
+      boot.classList.remove("on"); login.classList.remove("on");
+      removeEventListener("keydown", onKey); removeEventListener("pointerdown", onPointer);
+      try { sessionStorage.setItem(BOOT_KEY, "1"); } catch {}
+      setSafe(chooseSafe);
+      done();
+    };
+    const onKey = (e) => {
+      if (e.key === "F8") { e.preventDefault(); chooseSafe = true; }
+      finish();
+    };
+    const onPointer = (e) => {
+      if (e.target.closest(".safe-opt")) chooseSafe = true;
+      finish();
+    };
+    setSafe(false);
+    boot.classList.add("on");
+    // In safe mode the welcome screen is skipped, like a real safe-mode boot.
+    timers.push(setTimeout(() => {
+      boot.classList.remove("on");
+      if (chooseSafe) finish(); else login.classList.add("on");
+    }, 1800));
+    timers.push(setTimeout(finish, 2900));
+    addEventListener("keydown", onKey);
+    addEventListener("pointerdown", onPointer);
+  }
+
+  function rebootTo(safe) {
+    for (const w of [...windows.values()]) $(".close", w.el).click();
+    kill417 = 0;
+    bootSequence(() => openBrowser(), { force: true, safe });
+  }
+
+  // ---------- wallpaper ----------
+  // Random image from wallpapers/ (listed in wallpapers.json by scripts/list-wallpapers.mjs).
+  // Avoids showing the same one twice in a row. No list or no images -> the default pink hills.
+  const WALL_KEY = "tetoos.lastWallpaper";
+  let wallList = null;
+  async function setWallpaper(choice) {
+    const desk = $("#desktop");
+    if (wallList === null) {
+      try {
+        const res = await fetch("wallpapers.json", { cache: "no-cache" });
+        wallList = res.ok ? ((await res.json()).wallpapers || []) : [];
+      } catch { wallList = []; }
+    }
+    if (choice === "default" || !wallList.length) {
+      desk.classList.remove("wp"); desk.style.removeProperty("--wp");
+      return wallList.length ? "default" : null;
+    }
+    const last = storageGet(WALL_KEY, null);
+    const pool = wallList.length > 1 ? wallList.filter((w) => w !== last) : wallList;
+    const pick = wallList.includes(choice) ? choice : pool[Math.floor(Math.random() * pool.length)];
+    const img = new Image();
+    img.onload = () => {
+      desk.style.setProperty("--wp", `url("${encodeURI(pick)}")`);
+      desk.classList.add("wp");
+      desk.classList.remove("wpin"); void desk.offsetWidth; desk.classList.add("wpin");
+      storageSet(WALL_KEY, pick);
+    };
+    img.src = pick;
+    return pick;
+  }
+  setWallpaper();
+
+  bootSequence(() => openBrowser());   // contact page is open by default; minimize or close it to see the desktop
+})();
+</script>
+</body>
+</html>

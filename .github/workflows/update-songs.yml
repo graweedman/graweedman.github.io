@@ -1,0 +1,80 @@
+# Builds and publishes the site to GitHub Pages:
+#   1. fetches songs.json from your YouTube channel
+#   2. re-lists wallpapers/ into wallpapers.json
+#   3. commits those two files if they changed
+#   4. deploys the folder to GitHub Pages
+#
+# Runs on every push to main, every 3 hours, and from the "Run workflow" button.
+#
+# One-time setup:
+#   Settings -> Pages -> Build and deployment -> Source: "GitHub Actions"
+#   Settings -> Secrets and variables -> Actions -> Secrets:
+#     YT_API_KEY      YouTube Data API v3 key
+#     YT_CHANNEL_ID   your channel ID (starts with UC...)
+#   Optional variable YT_SKIP_PLAYLISTS: comma-separated playlist IDs to hide.
+
+name: Build and deploy
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 */3 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write    # commit songs.json / wallpapers.json
+  pages: write       # deploy to GitHub Pages
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Fetch songs from YouTube
+        env:
+          YT_API_KEY: ${{ secrets.YT_API_KEY }}
+          YT_CHANNEL_ID: ${{ secrets.YT_CHANNEL_ID }}
+          YT_SKIP_PLAYLISTS: ${{ vars.YT_SKIP_PLAYLISTS }}
+        run: node scripts/fetch-songs.mjs songs.json
+
+      - name: List wallpapers
+        run: node scripts/list-wallpapers.mjs
+
+      - name: Commit if changed
+        run: |
+          git add songs.json wallpapers.json
+          if git diff --cached --quiet; then
+            echo "nothing changed"
+          else
+            git config user.name  "tetoos-bot"
+            git config user.email "tetoos-bot@users.noreply.github.com"
+            git commit -m "songs: update from YouTube"
+            git push
+          fi
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

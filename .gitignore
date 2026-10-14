@@ -1,0 +1,10 @@
+# never commit secrets
+.env
+.env.*
+*.key
+
+# local tooling
+node_modules/
+.DS_Store
+Thumbs.db
+desktop.ini
