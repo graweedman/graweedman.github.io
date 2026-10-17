@@ -3,6 +3,13 @@
   "avatar": "https://yt3.ggpht.com/YYG5O6R3GoU9Ihdez9Ah0xAYMHkf0vfZxytdylVd8F5N3qaI8BmAaw93wfcJONSXMNb9-Gbr9g=s800-c-k-c0x00ffffff-no-rj",
   "playlists": [
     {
+      "id": "PLFz9UdglvwSQ",
+      "title": "Adachi Rei Covers",
+      "videos": [
+        "jwIW6Cy-RqU"
+      ]
+    },
+    {
       "id": "PLb8eTbmgP57wWyKGNFTyaLPjDbBHh0Zk9",
       "title": "Gumi Covers",
       "videos": [
@@ -33,8 +40,14 @@
   ],
   "songs": [
     {
+      "id": "jwIW6Cy-RqU",
+      "title": "Chop Suey! - System of a Down | Adachi Rei 足立レイ cover",
+      "published": "2026-10-17T08:33:13Z",
+      "thumbnail": "https://i.ytimg.com/vi/jwIW6Cy-RqU/mqdefault.jpg"
+    },
+    {
       "id": "3kByIJYHpdg",
-      "title": "【Teto SV】GraweedTeto - TetoOS feat. Kasane Teto / 重音テト | Original MV",
+      "title": "【Teto SV】GraweedTeto - Teto OS feat. Kasane Teto / 重音テト | Original MV",
       "published": "2026-10-10T16:32:17Z",
       "thumbnail": "https://i.ytimg.com/vi/3kByIJYHpdg/mqdefault.jpg"
     },
